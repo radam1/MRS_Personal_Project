@@ -58,4 +58,4 @@ USER $USERNAME
 ENV USER=$USERNAME
 
 #Import the necessary repos: 
-RUN vcs import src < src/riskam/riskam.repos
+RUN vcs import src < src/riskam_ros/riskam.repos
