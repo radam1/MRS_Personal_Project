@@ -1,0 +1,5 @@
+repositories:
+  coresense-risk-awareness:
+    type: git
+    url: https://github.com/JanZahalka/coresense-risk-awareness.git
+    version: main

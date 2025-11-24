@@ -1,61 +1,45 @@
-ARG ROS_VERSION=humble
+ARG HOST_OS=l4t-r36.2.0
+ARG ROS_DISTRO=humble
+ARG PREFIX=
 
-# Include perception packages, but not necessarily full desktop 
-FROM ros:$ROS_VERSION-ros-perception
+FROM dustynv/ros:${ROS_DISTRO}-desktop-${HOST_OS} AS ros_base
+SHELL ["/bin/bash", "-c"]
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Create a non-root user
+ENV ROS_USER=RiskAM
+ARG ROS_USER_UID=1000
+ARG ROS_USER_GID=$ROS_USER_UID
 
-WORKDIR /root/ws_riskam
-COPY . src/riskam_ros
-
-# Install apt packages needed for CI
-RUN apt-get -q update \
-    && apt-get -q -y upgrade \
-    && apt-get -q install --no-install-recommends -y \
-    git \
-    sudo \
-    clang \
-    clang-format-14 \
-    clang-tidy \
-    clang-tools \
-    python3-pip \
-    python3-dev \
-    python3-venv \
-    lsb-release \
-    wget \
-    gnupg \
-    software-properties-common \
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install all ROS dependencies for riskam
-RUN apt-get -q update \
-    && apt-get -q -y upgrade \
-    && rosdep update \
-    && rosdep install -y --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} --as-root=apt:false \
-    && rm -rf src \
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Configure a new non-root user
-ARG USERNAME=riskam
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    && chmod 0440 /etc/sudoers.d/$USERNAME \
+RUN groupadd --gid $ROS_USER_GID $ROS_USER \
+    && useradd -s /bin/bash --uid $ROS_USER_UID --gid $ROS_USER_GID -m $ROS_USER \
+    # [Optional] Add sudo support for the non-root user
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $ROS_USER ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$ROS_USER\
+    && chmod 0440 /etc/sudoers.d/$ROS_USER \
     && usermod -a -G dialout $USERNAME \
-    && echo "source /usr/share/bash-completion/completions/git" >> /home/$USERNAME/.bashrc
+    && echo "source /usr/share/bash-completion/completions/git" >> /home/$USERNAME/.bashrc \ 
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt upgrade -y \
+  # install build tools
+  && apt-get install -y \
+    git \
+    alsa-utils \
+    build-essential \
+    python3-pip \
+    python3-rosdep \
+    python3-vcstools \
+    python3-colcon-common-extensions \
+  && apt-get autoremove -y \
+  && apt-get clean -y \
+  && rm -rf /var/lib/apt/lists/*
 
-# Switch to the non-root user for the rest of the installation
-USER $USERNAME
-ENV USER=$USERNAME
+# Remove unnecessary folders
+RUN rm -rf log 
 
-#Import the necessary repos: 
-RUN vcs import src < src/riskam_ros/riskam.repos
+# Set up the entrypoint
+ENTRYPOINT [ "/ros_entrypoint.sh" ]
+CMD ["bash"]
