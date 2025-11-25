@@ -5,6 +5,12 @@ ARG PREFIX=
 FROM dustynv/ros:${ROS_DISTRO}-desktop-${HOST_OS} AS ros_base
 SHELL ["/bin/bash", "-c"]
 
+#Update the ROS2 Humble GPG key
+RUN apt-get update || true \
+    && apt-get install -y curl gnupg \
+    && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user
 ENV ROS_USER=RiskAM
 ARG ROS_USER_UID=1000
@@ -36,6 +42,9 @@ RUN apt-get update && apt upgrade -y \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/coresense_ws
+COPY . src/riskam_ros
 
 # Remove unnecessary folders
 RUN rm -rf log 
