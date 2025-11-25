@@ -23,8 +23,8 @@ RUN groupadd --gid $ROS_USER_GID $ROS_USER \
     && apt-get install -y sudo \
     && echo $ROS_USER ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$ROS_USER\
     && chmod 0440 /etc/sudoers.d/$ROS_USER \
-    && usermod -a -G dialout $USERNAME \
-    && echo "source /usr/share/bash-completion/completions/git" >> /home/$USERNAME/.bashrc \ 
+    && usermod -a -G dialout $ROS_USER \
+    && echo "source /usr/share/bash-completion/completions/git" >> /home/$ROS_USER/.bashrc \ 
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
